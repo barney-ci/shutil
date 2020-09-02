@@ -35,12 +35,12 @@ func (smap SimpleVariableMap) Get(variable string) (string, bool) {
 // The syntax for variable substitution is a restricted variant to that of
 // a POSIX shell:
 //
-// * Variables are denoted with ${variable_name}.
-// * All characters except ":" and "}" are accepted in variable names.
-// * ${variable:-default} expands to "default" if the variable is not defined
-//   in the variable map, or the value of the variable otherwise.
-// * ${variable:+alternate} expands to "alternate" if the variable is defined
-//   in the variable map, or the empty string otherwise.
+//  - Variables are denoted with ${variable_name}.
+//  - All characters except ":" and "}" are accepted in variable names.
+//  - ${variable:-default} expands to "default" if the variable is not defined
+//    in the variable map, or the value of the variable otherwise.
+//  - ${variable:+alternate} expands to "alternate" if the variable is defined
+//    in the variable map, or the empty string otherwise.
 func Substitute(s string, vars VariableMap) (string, error) {
 	var out strings.Builder
 	start := 0

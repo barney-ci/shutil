@@ -185,11 +185,11 @@ func parseClass(p *globParser) parseFunc {
 // Glob represents a compiled glob pattern. The supported syntax is mostly the
 // same as glob(7), with the following extensions:
 //
-// * Curly brace expansion is supported. "{a,b,c}" matches the strings "a", "b", and "c".
-// * A double star ("**") is supported to match any pathname component and their children.
-//   For instance, "dir/*" matches "dir/file" but not "dir/dir/file", while "dir/**" matches both.
-// * If the pattern starts with "!", the whole pattern is negated. If "!" appears later in the
-//   pattern, it is treated as a literal "!".
+//  - Curly brace expansion is supported. "{a,b,c}" matches the strings "a", "b", and "c".
+//  - A double star ("**") is supported to match any pathname component and their children.
+//    For instance, "dir/*" matches "dir/file" but not "dir/dir/file", while "dir/**" matches both.
+//  - If the pattern starts with "!", the whole pattern is negated. If "!" appears later in the
+//    pattern, it is treated as a literal "!".
 type Glob struct {
 	pattern string
 	re      *regexp.Regexp

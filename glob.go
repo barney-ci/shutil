@@ -263,6 +263,19 @@ func (g *Glob) String() string {
 	return g.pattern
 }
 
+func (g *Glob) UnmarshalText(text []byte) error {
+	glob, err := CompileGlob(string(text))
+	if err != nil {
+		return err
+	}
+	*g = *glob
+	return nil
+}
+
+func (g *Glob) MarshalText() ([]byte, error) {
+	return []byte(g.String()), nil
+}
+
 // GlobMatch compiles pattern, and then returns Glob.Match(data).
 func GlobMatch(pattern, data string) (bool, error) {
 	g, err := CompileGlob(pattern)

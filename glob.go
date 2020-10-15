@@ -25,10 +25,10 @@ type GlobError struct {
 	Pattern string
 
 	// Index is the index where the invalid character resides.
-	Index   int
+	Index int
 
 	// Err is the concrete underlying error.
-	Err     error
+	Err error
 }
 
 func (err *GlobError) Error() string {
@@ -46,12 +46,12 @@ const (
 type parseFunc func(*globParser) parseFunc
 
 type globParser struct {
-	in string
+	in           string
 	index, width int
-	neg bool
-	err error
-	out strings.Builder
-	choiceNest int
+	neg          bool
+	err          error
+	out          strings.Builder
+	choiceNest   int
 }
 
 func (l *globParser) next() (r rune) {
@@ -87,7 +87,7 @@ func parseMain(p *globParser) parseFunc {
 			p.out.WriteRune(next)
 		}
 	case '!':
-		if p.index - p.width != 0 {
+		if p.index-p.width != 0 {
 			goto literal
 		}
 		p.neg = !p.neg
@@ -161,7 +161,7 @@ func parseClass(p *globParser) parseFunc {
 				p.out.WriteRune(next)
 			}
 		case '!':
-			if p.index - start - p.width == 0 {
+			if p.index-start-p.width == 0 {
 				p.out.WriteRune('^')
 			} else {
 				goto literal
@@ -240,7 +240,7 @@ func (g *Glob) Match(data string) bool {
 func (g *Glob) MatchInfo(info os.FileInfo) bool {
 	match := g.Match(info.Name())
 	if info.IsDir() {
-		match = match || g.Match(info.Name() + "/")
+		match = match || g.Match(info.Name()+"/")
 	}
 	return match
 }

@@ -12,9 +12,9 @@ import (
 )
 
 func TestGlobString(t *testing.T) {
-	tcases := []struct{
+	tcases := []struct {
 		Pattern, File string
-		Match bool
+		Match         bool
 	}{
 		{"", "", true},
 		{"", "file", false},
@@ -69,9 +69,9 @@ func TestGlobString(t *testing.T) {
 		}
 	})
 
-	rangeCases := []struct{
+	rangeCases := []struct {
 		Pattern, Accepted string
-		Negated bool
+		Negated           bool
 	}{
 		{"[a]", "a", false},
 		{"[az]", "az", false},

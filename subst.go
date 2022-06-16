@@ -1,4 +1,4 @@
-// Copyright © 2020 Arista Networks, Inc. All rights reserved.
+// Copyright © 2020-2022 Arista Networks, Inc. All rights reserved.
 //
 // Use of this source code is governed by the MIT license that can be found
 // in the LICENSE file.
@@ -7,6 +7,7 @@ package shutil
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -15,7 +16,7 @@ import (
 // Get takes a variable name, and returns the value associated to the variable
 // if it has one, along with whether the variable is present in the variable map
 // or not.
-type VariableMap interface{
+type VariableMap interface {
 	Get(variable string) (value string, present bool)
 }
 
@@ -27,6 +28,8 @@ func (smap SimpleVariableMap) Get(variable string) (string, bool) {
 	val, ok := smap[variable]
 	return val, ok
 }
+
+var reGroup = regexp.MustCompile(`\\([0-9]+)`)
 
 // Substitute expands and substitutes shell variables in s, and returns
 // the fully substituted string. It errors out if s contains variables
@@ -41,15 +44,19 @@ func (smap SimpleVariableMap) Get(variable string) (string, bool) {
 //    in the variable map, or the value of the variable otherwise.
 //  - ${variable:+alternate} expands to "alternate" if the variable is defined
 //    in the variable map, or the empty string otherwise.
+//  - ${variable/re/subst/} expands to the variable, with a regexp replacement.
+//    for instance, ${variable/^([^:]*):/\1/}, where variable=foo:bar, expands
+//    to foo.
 func Substitute(s string, vars VariableMap) (string, error) {
 	var out strings.Builder
 	start := 0
+outer:
 	for i := 0; i < len(s); i++ {
 		if strings.HasPrefix(s[i:], "${") {
 			subsStart := i
 
 			i += 2
-			delim := strings.IndexAny(s[i:], ":}")
+			delim := strings.IndexAny(s[i:], ":/}")
 			if delim == -1 {
 				break
 			}
@@ -57,14 +64,44 @@ func Substitute(s string, vars VariableMap) (string, error) {
 			name := s[i : i+delim]
 			var def *string
 
-			if s[i+delim] == ':' {
+			switch s[i+delim] {
+			case ':':
 				i += delim + 1
 				delim = strings.IndexByte(s[i:], '}')
 				if delim == -1 {
-					break
+					break outer
 				}
 				slice := s[i : i+delim]
 				def = &slice
+			case '/':
+				i += delim
+				j := i
+
+				count := 1
+				for ; j < len(s) && count < 3; j++ {
+					switch s[j] {
+					case '\\':
+						j++
+					case '/':
+						count++
+					}
+				}
+				if count != 3 {
+					return "", fmt.Errorf("malformed regexp substitution %q: must be of the form ${variable/regexp/replace}", s[subsStart:j])
+				}
+				d := strings.IndexByte(s[j:], '}')
+				if d == -1 {
+					break outer
+				}
+				j += d
+				slice := s[i:j]
+				def = &slice
+
+				i = j
+				delim = 0
+			case '}':
+			default:
+				break outer
 			}
 
 			out.WriteString(s[start:subsStart])
@@ -88,6 +125,27 @@ func Substitute(s string, vars VariableMap) (string, error) {
 					if present {
 						value = deref[1:]
 					}
+				case '/':
+					// This is a regexp substitution
+
+					i := 0
+					parts := strings.FieldsFunc(*def, func(r rune) bool {
+						if r != '/' {
+							return false
+						}
+						return i == 0 || (*def)[i-1] != '\\'
+					})
+
+					if len(parts) != 2 {
+						return "", fmt.Errorf("malformed regexp substitution %q: must be of the form /regexp/replace", *def)
+					}
+
+					re, err := regexp.Compile(parts[0])
+					if err != nil {
+						return "", err
+					}
+
+					value = re.ReplaceAllString(value, reGroup.ReplaceAllString(parts[1], `${$1}`))
 				default:
 					return "", fmt.Errorf("malformed variable substitution %q", s[subsStart:i+delim+1])
 				}

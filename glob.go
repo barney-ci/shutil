@@ -185,11 +185,11 @@ func parseClass(p *globParser) parseFunc {
 // Glob represents a compiled glob pattern. The supported syntax is mostly the
 // same as glob(7), with the following extensions:
 //
-//  - Curly brace expansion is supported. "{a,b,c}" matches the strings "a", "b", and "c".
-//  - A double star ("**") is supported to match any pathname component and their children.
-//    For instance, "dir/*" matches "dir/file" but not "dir/dir/file", while "dir/**" matches both.
-//  - If the pattern starts with "!", the whole pattern is negated. If "!" appears later in the
-//    pattern, it is treated as a literal "!".
+//   - Curly brace expansion is supported. "{a,b,c}" matches the strings "a", "b", and "c".
+//   - A double star ("**") is supported to match any pathname component and their children.
+//     For instance, "dir/*" matches "dir/file" but not "dir/dir/file", while "dir/**" matches both.
+//   - If the pattern starts with "!", the whole pattern is negated. If "!" appears later in the
+//     pattern, it is treated as a literal "!".
 type Glob struct {
 	pattern string
 	re      *regexp.Regexp
@@ -301,4 +301,18 @@ func GlobMatchInfo(pattern string, info os.FileInfo) (bool, error) {
 		return false, err
 	}
 	return g.MatchInfo(info), nil
+}
+
+// IsLiteral determines if the string only has literal characters and returns true if so.
+//
+// See the documentation of the Glob type for more details on the glob syntax.
+func IsLiteral(pattern string) (bool, error) {
+	p := globParser{in: pattern}
+	for state := parseMain; state != nil; state = state(&p) {
+		continue
+	}
+	if p.err != nil {
+		return false, p.err
+	}
+	return regexp.QuoteMeta(p.out.String()) == p.out.String(), nil
 }

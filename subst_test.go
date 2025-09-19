@@ -6,8 +6,26 @@
 package shutil
 
 import (
+	"strings"
 	"testing"
 )
+
+type PrefixedVarMap struct {
+	Prefix string
+	Values map[string]string
+}
+
+func (m *PrefixedVarMap) Get(key string) (value string, present bool) {
+	if !strings.HasPrefix(key, m.Prefix) {
+		return "", false
+	}
+	value, present = m.Values[key[len(m.Prefix):]]
+	return
+}
+
+func (m *PrefixedVarMap) CanSubstitute(key string) bool {
+	return strings.HasPrefix(key, m.Prefix)
+}
 
 func TestSubstitute(t *testing.T) {
 
@@ -65,6 +83,35 @@ func TestSubstitute(t *testing.T) {
 					t.Fatalf("unexpected success: subtituted to %q", actual)
 				}
 				t.Log(err)
+			})
+		}
+	})
+
+	t.Run("Partial", func(t *testing.T) {
+
+		tcases := []struct {
+			In, Expected string
+			Error bool
+		}{
+			{`${substitute.variable}`, "value", false},
+			{`${substitute.undefined}`, "", true},
+			{`${nosubstitute.variable}`, `${nosubstitute.variable}`, false},
+		}
+
+		vals := &PrefixedVarMap{
+			Prefix: "substitute.",
+			Values: map[string]string{"variable": "value"},
+		}
+
+		for _, tc := range tcases {
+			t.Run(tc.In, func(t *testing.T) {
+				actual, err := Substitute(tc.In, vals)
+				if tc.Error != (err != nil) {
+					t.Fatalf("unexpected error or success: %v", err)
+				}
+				if actual != tc.Expected {
+					t.Fatalf("expected %q, got %q", tc.Expected, actual)
+				}
 			})
 		}
 	})

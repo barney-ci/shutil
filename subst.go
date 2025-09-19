@@ -47,7 +47,22 @@ var reGroup = regexp.MustCompile(`\\([0-9]+)`)
 //  - ${variable/re/subst/} expands to the variable, with a regexp replacement.
 //    for instance, ${variable/^([^:]*):/\1/}, where variable=foo:bar, expands
 //    to foo.
+//
+// If the passed VariableMap implements CanSubstitute(key string) bool, then
+// the method is called to determine whether the variable is to be substituted.
+// If the method returns false, the variable is left untouched and is output
+// as-is into the result.
 func Substitute(s string, vars VariableMap) (string, error) {
+
+	type CanSubstitute interface {
+		CanSubstitute(key string) bool
+	}
+
+	cansubst := func(key string) bool { return true }
+	if cs, ok := vars.(CanSubstitute); ok {
+		cansubst = cs.CanSubstitute
+	}
+
 	var out strings.Builder
 	start := 0
 outer:
@@ -102,6 +117,11 @@ outer:
 			case '}':
 			default:
 				break outer
+			}
+
+			if !cansubst(name) {
+				i += delim + 1
+				continue
 			}
 
 			out.WriteString(s[start:subsStart])
